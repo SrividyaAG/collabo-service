@@ -1,5 +1,6 @@
 package com.emeritus.collabo.controller;
 
+import com.emeritus.collabo.model.RemoveUserResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -43,6 +44,13 @@ public class RoomController {
   /** The Constant COURSE_NAME. */
   private static final String COURSE_NAME = "courseName";
 
+
+  /** The Constant REMOVE. */
+  private static final String REMOVE ="user/remove";
+
+  /** The Constant REASON. */
+  public static final String REASON = "reason";
+
   /** The matrix service. */
   @Autowired
   private MatrixService matrixService;
@@ -79,5 +87,24 @@ public class RoomController {
       @Parameter(description = "The room id") @RequestParam(ROOM_ID) String roomId,
       @Parameter(description = "The user id") @RequestParam(USER_ID) String userId) {
     return matrixService.inviteUser(roomId, userId);
+  }
+
+
+  /**
+   * Removes the user.
+   *
+   * @param roomId the room id
+   * @param userId the user id
+   * @param reason the reason
+   * @return the mono
+   */
+  @Operation(summary = "remove a user", description = "remove a user from room")
+  @PostMapping(REMOVE)
+  @ResponseStatus(HttpStatus.OK)
+  public Mono<RemoveUserResponse> removeUser(
+          @Parameter(description = "The room id") @RequestParam(ROOM_ID) String roomId,
+          @Parameter(description = "The user id") @RequestParam(USER_ID) String userId,
+          @Parameter(description = "Reson for removing") @RequestParam(REASON) String reason) {
+    return matrixService.removeUser(roomId, userId, reason);
   }
 }

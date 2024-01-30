@@ -1,6 +1,8 @@
 package com.emeritus.collabo.consumer;
 
 import java.util.Map;
+
+import org.apache.commons.lang3.StringUtils;
 import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,6 +39,18 @@ public class Consumer {
 
   /** The Constant ACCOUNT_ID. */
   private static final String ACCOUNT_ID = "1";
+
+  /** The Constant REASON. */
+  private static final String REASON = "Unenrollement";
+
+  /** The Constant WORKFLOWSTATE. */
+  private static final String WORKFLOWSTATE="workflow_state";
+
+  /** The Constant DELETED. */
+  private static final String DELETED="deleted";
+
+  /** The Constant INACTIVE. */
+  private static final String INACTIVE = "inactive";
 
   /** The logger. */
   private Logger logger = LoggerFactory.getLogger(Consumer.class);
@@ -85,5 +99,32 @@ public class Consumer {
         .subscribe(existingRoom -> roomController.inviteUser(existingRoom.getRoom_id(), userName)
             .subscribe(user -> logger.info("InviteUserResponse " + user)));
     logger.info("Event - invite user");
+  }
+
+  /**
+   * Consume update enrolement.
+   *
+   * @param eventModel the event model
+   */
+  @SuppressWarnings("unchecked")
+  @RabbitListener(queues = {"${canvaslms.enrollment.update.event}"})
+  public void consumeUpdateEnrolement(EventModel eventModel)
+  {
+    logger.info("Message receved from update enrolement: {}",eventModel);
+    Document payload = eventModel.getEvent();
+    Map<String, String> attributes = payload.get(ATTRIBUTES, Map.class);
+    String userName = attributes.get(USER_LOGIN);
+    Map<String, String> body = payload.get(BODY, Map.class);
+    Integer courseId = Integer.parseInt(body.get(COURSE_ID).replaceFirst(ACCOUNT_ID, EMPTY));
+    if(StringUtils.equalsAnyIgnoreCase(body.get(WORKFLOWSTATE), DELETED) ||  StringUtils.equalsAnyIgnoreCase(body.get(WORKFLOWSTATE), INACTIVE))
+    {
+      roomInfoRepository.findByCourseId(courseId).subscribe(
+              existingRoom -> roomController.removeUser(existingRoom.getRoom_id(), userName,REASON).subscribe());
+      logger.info("Remove user from the room successfully");
+    }
+    else
+    {
+      logger.info("Due to different work-flow state remove user from the room operation un-successfull");
+    }
   }
 }

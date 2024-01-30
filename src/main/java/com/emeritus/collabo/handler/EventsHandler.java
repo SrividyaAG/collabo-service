@@ -40,6 +40,9 @@ public class EventsHandler {
   @Value("${canvaslms.enrollment.create.event:enrollment_created}")
   private String createEnrollment;
 
+  @Value("${canvaslms.enrollment.update.event:enrollment_updated}")
+  private String updateEnrollement;
+
   /**
    * Post canvas events.
    *
@@ -63,6 +66,9 @@ public class EventsHandler {
         } else if (eventName.equals(createEnrollment)) {
           rabbitTemplate.convertAndSend(Constants.RABBIT_EXCHANGE,
               createEnrollment + Constants.ROUTING_KEY, eventModel);
+        } else if (eventName.equals(updateEnrollement)) {
+          rabbitTemplate.convertAndSend(Constants.RABBIT_EXCHANGE,
+                  updateEnrollement + Constants.ROUTING_KEY, eventModel);
         }
         return ServerResponse.ok().body(Mono.just(eventModel), EventModel.class);
       }
