@@ -1,0 +1,6 @@
+CREATE DATABASE collabo;
+CREATE SCHEMA collabo;
+CREATE USER emeritus;
+ALTER USER emeritus WITH PASSWORD 'eruditus';
+GRANT ALL PRIVILEGES ON DATABASE collabo TO emeritus;
+GRANT ALL PRIVILEGES ON SCHEMA collabo TO emeritus;

@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext" xmlns:pro="http://www.liquibase.org/xml/ns/pro" xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.9.xsd
+																																																															 http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd
+																																																															 http://www.liquibase.org/xml/ns/pro http://www.liquibase.org/xml/ns/pro/liquibase-pro-latest.xsd">
+	<!-- Start -->
+	<changeSet id="1" author="liquibase">
+		<preConditions onFail="MARK_RAN">
+			<not>
+				<tableExists tableName="room_info" />
+			</not>
+		</preConditions>
+		<createTable tableName="room_info">
+			<column name="id" type="integer" autoIncrement="true">
+				<constraints primaryKey="true" />
+			</column>
+			<column name="room_id" type="character varying"></column>
+			<column name="room_name" type="character varying"></column>
+			<column name="course_id" type="integer"></column>
+			<column name="course_name" type="character varying"></column>
+			<column name="created_date" type="timestamp"></column>
+			<column name="created_by" type="character varying"></column>
+			<column name="last_modified_date" type="timestamp"></column>
+			<column name="last_modified_by" type="character varying"></column>
+		</createTable>
+	</changeSet>
+</databaseChangeLog>
