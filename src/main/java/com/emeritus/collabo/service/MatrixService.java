@@ -3,6 +3,8 @@ package com.emeritus.collabo.service;
 import java.sql.Timestamp;
 import java.time.Duration;
 import java.util.Date;
+
+import com.emeritus.collabo.model.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,14 +14,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException.Unauthorized;
 import com.emeritus.collabo.entity.RoomInfoEntity;
-import com.emeritus.collabo.model.AccessTokenResponse;
-import com.emeritus.collabo.model.CreationContent;
-import com.emeritus.collabo.model.Identifier;
-import com.emeritus.collabo.model.InviteUserRequest;
-import com.emeritus.collabo.model.InviteUserResponse;
-import com.emeritus.collabo.model.LoginRequest;
-import com.emeritus.collabo.model.RoomRequest;
-import com.emeritus.collabo.model.RoomResponse;
 import com.emeritus.collabo.repository.RoomInfoRepository;
 import reactor.core.publisher.Mono;
 import reactor.util.retry.Retry;
@@ -60,6 +54,8 @@ public class MatrixService {
   /** The Constant INVITE. */
   private static final String INVITE = "/rooms/{roomId}/invite";
 
+  /** The Constant REMOVE. */
+  private static final String REMOVE = "/rooms/{roomId}/kick";
   /** The logger. */
   private Logger logger = LoggerFactory.getLogger(MatrixService.class);
 
@@ -245,6 +241,50 @@ public class MatrixService {
         .body(Mono.just(inviteRequest), InviteUserRequest.class).retrieve()
         .bodyToMono(InviteUserResponse.class);
     return response;
+  }
+
+  /**
+   * Removes the user.
+   *
+   * @param roomId the room id
+   * @param userId the user id
+   * @param reason the reason
+   * @return the mono
+   */
+  public Mono<RemoveUserResponse> removeUser(String roomId, String userId, String reason) {
+    RemoveUserRequest removeUserRequest = new RemoveUserRequest(userId, reason);
+    Mono<RemoveUserResponse> removeUserResponse = removeUserRequest(roomId, removeUserRequest);
+    return removeUserResponse.doOnSuccess(userRemove -> {
+      logger.info("User Remover: {}", userRemove);
+      logger.info("User Remove successfully");
+    }).doOnError(error -> {
+      logger.error("Error removing user: " + error.getMessage(), error);
+      if (error instanceof Unauthorized) {
+        Mono<AccessTokenResponse> accessToken = getAccessToken();
+        accessToken.subscribe(accessTokenResponse -> {
+          logger.info("AccessToken created: {}", accessTokenResponse);
+          setAccessToken(accessTokenResponse);
+        });
+      }
+    }).retryWhen(Retry.backoff(1, Duration.ofSeconds(50))
+            .filter(throwable -> throwable instanceof Unauthorized));
+  }
+
+  /**
+   * Removes the user request.
+   *
+   * @param roomId the room id
+   * @param removeUserRequest the remove user request
+   * @return the mono
+   */
+  private Mono<RemoveUserResponse> removeUserRequest(String roomId,
+                                                     RemoveUserRequest removeUserRequest) {
+    return webClient.post().uri(uriBuilder -> uriBuilder.path(REMOVE).build(roomId))
+            .headers(httpHeaders -> {
+              httpHeaders.add(AUTHORIZATION, BEARER + m_accessToken);
+            }).contentType(MediaType.APPLICATION_JSON).accept(MediaType.APPLICATION_JSON)
+            .body(Mono.just(removeUserRequest), RemoveUserRequest.class).retrieve()
+            .bodyToMono(RemoveUserResponse.class);
   }
 
 }

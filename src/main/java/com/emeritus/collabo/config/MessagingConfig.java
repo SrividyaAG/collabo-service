@@ -28,6 +28,10 @@ public class MessagingConfig {
   @Value("${canvaslms.enrollment.create.event:enrollment_created}")
   private String createEnrollment;
 
+  /** The update enrollement. */
+  @Value("${canvaslms.enrollment.update.event:enrollment_updated}")
+  private String updateEnrollement;
+
   /**
    * Exchange.
    *
@@ -57,7 +61,15 @@ public class MessagingConfig {
   public Queue createEnrollment() {
     return new Queue(createEnrollment);
   }
-
+  /**
+   * Update enrollment.
+   *
+   * @return the queue
+   */
+  @Bean
+  public Queue updateEnrollment() {
+    return new Queue(updateEnrollement);
+  }
   /**
    * Binding.
    *
@@ -79,7 +91,16 @@ public class MessagingConfig {
     return BindingBuilder.bind(createEnrollment()).to(exchange())
         .with(createEnrollment + Constants.ROUTING_KEY);
   }
-
+  /**
+   * Update enrollment binding.
+   *
+   * @return the binding
+   */
+  @Bean
+  public Binding updateEnrollmentBinding() {
+    return BindingBuilder.bind(updateEnrollment()).to(exchange())
+            .with(updateEnrollement + Constants.ROUTING_KEY);
+  }
   /**
    * Converter.
    *
