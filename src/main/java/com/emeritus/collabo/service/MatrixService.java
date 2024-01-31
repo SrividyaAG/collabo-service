@@ -3,8 +3,6 @@ package com.emeritus.collabo.service;
 import java.sql.Timestamp;
 import java.time.Duration;
 import java.util.Date;
-
-import com.emeritus.collabo.model.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,6 +12,16 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException.Unauthorized;
 import com.emeritus.collabo.entity.RoomInfoEntity;
+import com.emeritus.collabo.model.AccessTokenResponse;
+import com.emeritus.collabo.model.CreationContent;
+import com.emeritus.collabo.model.Identifier;
+import com.emeritus.collabo.model.InviteUserRequest;
+import com.emeritus.collabo.model.InviteUserResponse;
+import com.emeritus.collabo.model.LoginRequest;
+import com.emeritus.collabo.model.RemoveUserRequest;
+import com.emeritus.collabo.model.RemoveUserResponse;
+import com.emeritus.collabo.model.RoomRequest;
+import com.emeritus.collabo.model.RoomResponse;
 import com.emeritus.collabo.repository.RoomInfoRepository;
 import reactor.core.publisher.Mono;
 import reactor.util.retry.Retry;
@@ -23,6 +31,9 @@ import reactor.util.retry.Retry;
  */
 @Service
 public class MatrixService {
+
+  /** The Constant REGEX. */
+  private static final String REGEX = "[^A-Za-z0-9]+";
 
   /** The Constant BEARER. */
   private static final String BEARER = "Bearer ";
@@ -135,9 +146,12 @@ public class MatrixService {
    * @return the room request
    */
   private RoomRequest getRoomRequest(String courseName, Integer courseId) {
+    // replace spaces and special characters in course name to -
+    String roomName = courseName.replaceAll(REGEX, HYPHEN).toLowerCase() + HYPHEN + courseId;
+
     RoomRequest room = new RoomRequest();
     room.setPreset(PRIVATE_CHAT);
-    room.setRoomAliasName(courseName + HYPHEN + courseId);
+    room.setRoomAliasName(roomName);
     room.setName(room.getRoomAliasName());
     room.setTopic(room.getRoomAliasName());
     CreationContent creationContent = new CreationContent();
@@ -267,7 +281,7 @@ public class MatrixService {
         });
       }
     }).retryWhen(Retry.backoff(1, Duration.ofSeconds(50))
-            .filter(throwable -> throwable instanceof Unauthorized));
+        .filter(throwable -> throwable instanceof Unauthorized));
   }
 
   /**
@@ -278,13 +292,13 @@ public class MatrixService {
    * @return the mono
    */
   private Mono<RemoveUserResponse> removeUserRequest(String roomId,
-                                                     RemoveUserRequest removeUserRequest) {
+      RemoveUserRequest removeUserRequest) {
     return webClient.post().uri(uriBuilder -> uriBuilder.path(REMOVE).build(roomId))
-            .headers(httpHeaders -> {
-              httpHeaders.add(AUTHORIZATION, BEARER + m_accessToken);
-            }).contentType(MediaType.APPLICATION_JSON).accept(MediaType.APPLICATION_JSON)
-            .body(Mono.just(removeUserRequest), RemoveUserRequest.class).retrieve()
-            .bodyToMono(RemoveUserResponse.class);
+        .headers(httpHeaders -> {
+          httpHeaders.add(AUTHORIZATION, BEARER + m_accessToken);
+        }).contentType(MediaType.APPLICATION_JSON).accept(MediaType.APPLICATION_JSON)
+        .body(Mono.just(removeUserRequest), RemoveUserRequest.class).retrieve()
+        .bodyToMono(RemoveUserResponse.class);
   }
 
 }

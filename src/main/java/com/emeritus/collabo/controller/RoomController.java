@@ -1,6 +1,5 @@
 package com.emeritus.collabo.controller;
 
-import com.emeritus.collabo.model.RemoveUserResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -9,6 +8,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import com.emeritus.collabo.model.InviteUserResponse;
+import com.emeritus.collabo.model.RemoveUserResponse;
 import com.emeritus.collabo.model.RoomResponse;
 import com.emeritus.collabo.service.MatrixService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -21,10 +21,6 @@ import reactor.core.publisher.Mono;
 @RestController
 @RequestMapping("/rooms")
 public class RoomController {
-
-  private static final String HYPHEN = "-";
-
-  private static final String REGEX = "[^A-Za-z0-9]+";
 
   /** The Constant CREATE. */
   private static final String CREATE = "create";
@@ -44,9 +40,8 @@ public class RoomController {
   /** The Constant COURSE_NAME. */
   private static final String COURSE_NAME = "courseName";
 
-
   /** The Constant REMOVE. */
-  private static final String REMOVE ="user/remove";
+  private static final String REMOVE = "user/remove";
 
   /** The Constant REASON. */
   public static final String REASON = "reason";
@@ -68,8 +63,6 @@ public class RoomController {
   public Mono<RoomResponse> createRoom(
       @Parameter(description = "The course name") @RequestParam(COURSE_NAME) String courseName,
       @Parameter(description = "The course id") @RequestParam(COURSE_ID) Integer courseId) {
-    // replace spaces and special characters in course name to -
-    courseName = courseName.replaceAll(REGEX, HYPHEN).toLowerCase();
     return matrixService.createRoom(courseName, courseId);
   }
 
@@ -102,9 +95,9 @@ public class RoomController {
   @PostMapping(REMOVE)
   @ResponseStatus(HttpStatus.OK)
   public Mono<RemoveUserResponse> removeUser(
-          @Parameter(description = "The room id") @RequestParam(ROOM_ID) String roomId,
-          @Parameter(description = "The user id") @RequestParam(USER_ID) String userId,
-          @Parameter(description = "Reson for removing") @RequestParam(REASON) String reason) {
+      @Parameter(description = "The room id") @RequestParam(ROOM_ID) String roomId,
+      @Parameter(description = "The user id") @RequestParam(USER_ID) String userId,
+      @Parameter(description = "Reson for removing") @RequestParam(REASON) String reason) {
     return matrixService.removeUser(roomId, userId, reason);
   }
 }

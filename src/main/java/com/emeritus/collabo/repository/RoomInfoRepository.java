@@ -1,10 +1,9 @@
 package com.emeritus.collabo.repository;
 
 import org.springframework.data.r2dbc.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.data.repository.reactive.ReactiveCrudRepository;
-
 import com.emeritus.collabo.entity.RoomInfoEntity;
-
 import reactor.core.publisher.Mono;
 
 /**
@@ -18,7 +17,7 @@ public interface RoomInfoRepository extends ReactiveCrudRepository<RoomInfoEntit
    * @param courseId the course id
    * @return the mono
    */
-  @Query("select * from collabo.room_info where course_id = $1")
-  Mono<RoomInfoEntity> findByCourseId(Integer courseId);
+  @Query("select * from collabo.room_info where course_id = :courseId")
+  Mono<RoomInfoEntity> findByCourseId(@Param("courseId") Integer courseId);
 
 }
