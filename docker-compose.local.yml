@@ -10,7 +10,7 @@ services:
         - "5672:5672"
     #service 2: definition of your spring-boot app 
     collaboservice:                        #it is just a name, which will be used only in this file.
-      image: collabo-service               #name of the image after dockerfile executes
+      image: 619660652947.dkr.ecr.ap-southeast-1.amazonaws.com/collabo-service               #name of the image after dockerfile executes
       container_name: collabo-service-app  #name of the container created from docker image
       build:
         context: .                          #docker file path (. means root directory)
@@ -19,6 +19,10 @@ services:
         - "8096:8096"                       #docker containter port with your os port
       restart: always
       environment:
+        - matrix.baseurl=https://matrix.emeritus.org/_matrix/client/v3
+        - matrix.username=admin
+        - matrix.password=admin@collabo$!12
+        - matrix.suffix=:matrix.emeritus.org
         - SPRING_RABBITMQ_HOST=rabbitmq
         - spring.profiles.active=local
         - spring.r2dbc.url=r2dbc:postgresql://localhost:5432/collabo?currentSchema=collabo

@@ -3,24 +3,24 @@ services:
     #service 1: definition of rabbitmq
     rabbitmq:
       image: rabbitmq:3-management
-      container_name: rabbitmq
+      container_name: rabbitmq  
       restart: always
       ports:
         - "15672:15672"
         - "5672:5672"
     #service 2: definition of collabo service 
-    collaboservice:
-      image: 619660652947.dkr.ecr.ap-southeast-1.amazonaws.com/collabo-service
-      container_name: collabo-service-app
+    collaboservice:                        
+      image: 619660652947.dkr.ecr.ap-southeast-1.amazonaws.com/collabo-service               
+      container_name: collabo-service-app        
       ports:
-        - "8090:8096"
+        - "8090:8096"                       
       restart: always
       environment:
+        - spring.profiles.active=stage 
         - canvaslms.event.security.key=emeritus
         - canvaslms.event.exclusions=heartbeat,logged_in,logged_out,user_updated
         - canvaslms.event.attrs.context.role.exclusions=
         - SPRING_RABBITMQ_HOST=rabbitmq
-        - spring.profiles.active=prod
         - spring.r2dbc.url=r2dbc:postgresql://learner-dev-db.c6nzoairsq0j.us-east-1.rds.amazonaws.com:5432/collabo?currentSchema=collabo
         - spring.r2dbc.username=emeritus
         - spring.r2dbc.password=eruditus
@@ -33,9 +33,6 @@ services:
         "-Xmx2048m",
         "-jar",
         "/app/collabo-service-0.0.1-SNAPSHOT.jar"
-      ]
-      extra_hosts:
-        - "localhost:host-gateway"
-        - "host.docker.internal:host-gateway"
-      depends_on:
+      ]  
+      depends_on:                          
         - rabbitmq

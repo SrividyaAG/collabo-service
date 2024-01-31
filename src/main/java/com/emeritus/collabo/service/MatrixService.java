@@ -1,23 +1,14 @@
 package com.emeritus.collabo.service;
 
 import java.sql.Timestamp;
-import java.time.Duration;
 import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.env.ConfigurableEnvironment;
-import org.springframework.core.env.MapPropertySource;
-import org.springframework.core.env.MutablePropertySources;
-import org.springframework.core.env.PropertySource;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
-import org.springframework.web.reactive.function.client.WebClientResponseException.Unauthorized;
 import com.emeritus.collabo.entity.RoomInfoEntity;
 import com.emeritus.collabo.model.AccessTokenResponse;
 import com.emeritus.collabo.model.CreationContent;
@@ -31,7 +22,6 @@ import com.emeritus.collabo.model.RoomRequest;
 import com.emeritus.collabo.model.RoomResponse;
 import com.emeritus.collabo.repository.RoomInfoRepository;
 import reactor.core.publisher.Mono;
-import reactor.util.retry.Retry;
 
 /**
  * The Class MatrixService.
@@ -85,16 +75,9 @@ public class MatrixService {
   @Value("${matrix.password}")
   private String password;
 
-  /** The m access token. */
-  @Value("${matrix.accesstoken:syt_YWRtaW4_arNBIxilWKuJTNCsmUPx_1cW3op}")
-  private String m_accessToken;
-
   /** The web client. */
   @Autowired
   private WebClient webClient;
-
-  @Autowired
-  private ConfigurableEnvironment environment;
 
   /** The room info repository. */
   @Autowired
@@ -137,15 +120,7 @@ public class MatrixService {
       roomInfoRepository.save(roomInfoEntity).subscribe();
     }).doOnError(error -> {
       logger.error("Error creating room: " + error.getMessage(), error);
-      if (error instanceof Unauthorized) {
-        Mono<AccessTokenResponse> accessToken = getAccessToken();
-        accessToken.subscribe(accessTokenResponse -> {
-          logger.info("AccessToken created: " + accessTokenResponse);
-          setAccessToken(accessTokenResponse);
-        });
-      }
-    }).retryWhen(Retry.backoff(1, Duration.ofSeconds(50))
-        .filter(throwable -> throwable instanceof Unauthorized));
+    });
   }
 
   /**
@@ -177,11 +152,15 @@ public class MatrixService {
    * @return the mono
    */
   private Mono<RoomResponse> createRoom(RoomRequest room) {
-    Mono<RoomResponse> response = webClient.post().uri(CREATE_ROOM).headers(httpHeaders -> {
-      httpHeaders.add(AUTHORIZATION, BEARER + m_accessToken);
-    }).contentType(MediaType.APPLICATION_JSON).accept(MediaType.APPLICATION_JSON)
-        .body(Mono.just(room), RoomRequest.class).retrieve().bodyToMono(RoomResponse.class);
-    return response;
+    Mono<AccessTokenResponse> accessToken = getAccessToken();
+    return accessToken.flatMap(accessTokenResponse -> {
+      logger.info("AccessToken created: " + accessTokenResponse);
+      Mono<RoomResponse> response = webClient.post().uri(CREATE_ROOM).headers(httpHeaders -> {
+        httpHeaders.add(AUTHORIZATION, BEARER + accessTokenResponse.getAccessToken());
+      }).contentType(MediaType.APPLICATION_JSON).accept(MediaType.APPLICATION_JSON)
+          .body(Mono.just(room), RoomRequest.class).retrieve().bodyToMono(RoomResponse.class);
+      return response;
+    }).switchIfEmpty(Mono.empty());
   }
 
   /**
@@ -203,25 +182,6 @@ public class MatrixService {
   }
 
   /**
-   * Sets the access token.
-   *
-   * @param accessToken the new access token
-   */
-  private static final String MATRIX_TOKEN_PROP_NAME = "matrixTokenProp";
-  private void setAccessToken(AccessTokenResponse accessToken) {
-    logger.info("Set matrix token:" + accessToken);
-    MutablePropertySources propertySources = environment.getPropertySources();
-    Map<String, Object> map = new HashMap<>();
-    map.put("matrix.accesstoken", accessToken.getAccessToken());
-    PropertySource matrixTokenProp = propertySources.get(MATRIX_TOKEN_PROP_NAME);
-    if(matrixTokenProp != null) {
-      propertySources.replace(MATRIX_TOKEN_PROP_NAME, new MapPropertySource(MATRIX_TOKEN_PROP_NAME, map));
-    } else {
-      propertySources.addFirst(new MapPropertySource(MATRIX_TOKEN_PROP_NAME, map));
-    }
-  }
-
-  /**
    * Invite user.
    *
    * @param roomId the room id
@@ -235,15 +195,7 @@ public class MatrixService {
       logger.info("User invited: " + userInvited);
     }).doOnError(error -> {
       logger.error("Error inviting user: " + error.getMessage(), error);
-      if (error instanceof Unauthorized) {
-        Mono<AccessTokenResponse> accessToken = getAccessToken();
-        accessToken.subscribe(accessTokenResponse -> {
-          logger.info("AccessToken created: " + accessTokenResponse);
-          setAccessToken(accessTokenResponse);
-        });
-      }
-    }).retryWhen(Retry.backoff(1, Duration.ofSeconds(50))
-        .filter(throwable -> throwable instanceof Unauthorized));
+    });
   }
 
   /**
@@ -267,13 +219,17 @@ public class MatrixService {
    * @return the mono
    */
   private Mono<InviteUserResponse> createInvite(String roomId, InviteUserRequest inviteRequest) {
-    Mono<InviteUserResponse> response = webClient.post()
-        .uri(uriBuilder -> uriBuilder.path(INVITE).build(roomId)).headers(httpHeaders -> {
-          httpHeaders.add(AUTHORIZATION, BEARER + m_accessToken);
-        }).contentType(MediaType.APPLICATION_JSON).accept(MediaType.APPLICATION_JSON)
-        .body(Mono.just(inviteRequest), InviteUserRequest.class).retrieve()
-        .bodyToMono(InviteUserResponse.class);
-    return response;
+    Mono<AccessTokenResponse> accessToken = getAccessToken();
+    return accessToken.flatMap(accessTokenResponse -> {
+      logger.info("AccessToken created: " + accessTokenResponse);
+      Mono<InviteUserResponse> response = webClient.post()
+          .uri(uriBuilder -> uriBuilder.path(INVITE).build(roomId)).headers(httpHeaders -> {
+            httpHeaders.add(AUTHORIZATION, BEARER + accessTokenResponse.getAccessToken());
+          }).contentType(MediaType.APPLICATION_JSON).accept(MediaType.APPLICATION_JSON)
+          .body(Mono.just(inviteRequest), InviteUserRequest.class).retrieve()
+          .bodyToMono(InviteUserResponse.class);
+      return response;
+    }).switchIfEmpty(Mono.empty());
   }
 
   /**
@@ -292,15 +248,7 @@ public class MatrixService {
       logger.info("User Remove successfully");
     }).doOnError(error -> {
       logger.error("Error removing user: " + error.getMessage(), error);
-      if (error instanceof Unauthorized) {
-        Mono<AccessTokenResponse> accessToken = getAccessToken();
-        accessToken.subscribe(accessTokenResponse -> {
-          logger.info("AccessToken created: {}", accessTokenResponse);
-          setAccessToken(accessTokenResponse);
-        });
-      }
-    }).retryWhen(Retry.backoff(1, Duration.ofSeconds(50))
-        .filter(throwable -> throwable instanceof Unauthorized));
+    });
   }
 
   /**
@@ -312,12 +260,16 @@ public class MatrixService {
    */
   private Mono<RemoveUserResponse> removeUserRequest(String roomId,
       RemoveUserRequest removeUserRequest) {
-    return webClient.post().uri(uriBuilder -> uriBuilder.path(REMOVE).build(roomId))
-        .headers(httpHeaders -> {
-          httpHeaders.add(AUTHORIZATION, BEARER + m_accessToken);
-        }).contentType(MediaType.APPLICATION_JSON).accept(MediaType.APPLICATION_JSON)
-        .body(Mono.just(removeUserRequest), RemoveUserRequest.class).retrieve()
-        .bodyToMono(RemoveUserResponse.class);
+    Mono<AccessTokenResponse> accessToken = getAccessToken();
+    return accessToken.flatMap(accessTokenResponse -> {
+      logger.info("AccessToken created: " + accessTokenResponse);
+      return webClient.post().uri(uriBuilder -> uriBuilder.path(REMOVE).build(roomId))
+          .headers(httpHeaders -> {
+            httpHeaders.add(AUTHORIZATION, BEARER + accessTokenResponse.getAccessToken());
+          }).contentType(MediaType.APPLICATION_JSON).accept(MediaType.APPLICATION_JSON)
+          .body(Mono.just(removeUserRequest), RemoveUserRequest.class).retrieve()
+          .bodyToMono(RemoveUserResponse.class);
+    }).switchIfEmpty(Mono.empty());
   }
 
 }
