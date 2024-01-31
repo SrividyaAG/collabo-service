@@ -86,7 +86,11 @@
             <version>4.1.72.Final</version>
             <classifier>osx-aarch_64</classifier>
 		</dependency>
-
+		<dependency>
+			<groupId>org.emeritus.learner</groupId>
+			<artifactId>learner-canvas-api</artifactId>
+			<version>1.28-SNAPSHOT</version>
+		</dependency>
     
 		<!-- Swagger starts -->
         <dependency>
