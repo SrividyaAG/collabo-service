@@ -1,19 +1,4 @@
-FROM openjdk:11 as rabbitmq
-EXPOSE 8081
-WORKDIR /app
-
-# Copy maven executable to the image
-COPY mvnw .
-COPY .mvn .mvn
-
-# Copy the pom.xml file
-COPY pom.xml .
-
-# Copy the project source
-COPY ./src ./src
-COPY ./pom.xml ./pom.xml
-
-RUN chmod 755 /app/mvnw
-
-RUN ./mvnw package -DskipTests
-ENTRYPOINT ["java","-jar","target/collabo-service-0.0.1-SNAPSHOT.jar"]
+FROM amazoncorretto:17.0.5 as rabbitmq
+ARG JAR_FILE=target/collabo-service-0.0.1-SNAPSHOT.jar
+COPY ${JAR_FILE} /app/collabo-service-0.0.1-SNAPSHOT.jar
+ENTRYPOINT ["java","--add-opens","java.base/java.lang=ALL-UNNAMED","-jar","/app/collabo-service-0.0.1-SNAPSHOT.jar"]
