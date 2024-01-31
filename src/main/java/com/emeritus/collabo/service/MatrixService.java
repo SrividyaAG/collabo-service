@@ -3,10 +3,17 @@ package com.emeritus.collabo.service;
 import java.sql.Timestamp;
 import java.time.Duration;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.env.ConfigurableEnvironment;
+import org.springframework.core.env.MapPropertySource;
+import org.springframework.core.env.MutablePropertySources;
+import org.springframework.core.env.PropertySource;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -85,6 +92,9 @@ public class MatrixService {
   /** The web client. */
   @Autowired
   private WebClient webClient;
+
+  @Autowired
+  private ConfigurableEnvironment environment;
 
   /** The room info repository. */
   @Autowired
@@ -197,9 +207,18 @@ public class MatrixService {
    *
    * @param accessToken the new access token
    */
+  private static final String MATRIX_TOKEN_PROP_NAME = "matrixTokenProp";
   private void setAccessToken(AccessTokenResponse accessToken) {
-    logger.info("Created matrix room" + accessToken);
-    m_accessToken = accessToken.getAccessToken();
+    logger.info("Set matrix token:" + accessToken);
+    MutablePropertySources propertySources = environment.getPropertySources();
+    Map<String, Object> map = new HashMap<>();
+    map.put("matrix.accesstoken", accessToken.getAccessToken());
+    PropertySource matrixTokenProp = propertySources.get(MATRIX_TOKEN_PROP_NAME);
+    if(matrixTokenProp != null) {
+      propertySources.replace(MATRIX_TOKEN_PROP_NAME, new MapPropertySource(MATRIX_TOKEN_PROP_NAME, map));
+    } else {
+      propertySources.addFirst(new MapPropertySource(MATRIX_TOKEN_PROP_NAME, map));
+    }
   }
 
   /**
