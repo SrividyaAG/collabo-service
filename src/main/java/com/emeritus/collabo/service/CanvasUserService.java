@@ -51,12 +51,26 @@ public class CanvasUserService {
       User user = userReader.showUserDetails(userId).get();
       if (user != null) {
         // @srividya=40gmail.com:matrix.emeritus.org
-        userName = user.getLoginId().replaceAll(AT, AT_ENCODED) + matrixSuffix;
+        userName = getMatrixUserName(user);
         return userName;
       }
     } catch (Exception e) {
       logger.error("Error occurred while fetching users: {}", e.getMessage(), e);
     }
     return userName;
+  }
+
+  /**
+   * Gets the matrix user name.
+   *
+   * @param user the user
+   * @return the matrix user name
+   */
+  private String getMatrixUserName(User user) {
+    StringBuilder sb = new StringBuilder();
+    sb.append(AT);
+    sb.append(user.getLoginId().replaceAll(AT, AT_ENCODED));
+    sb.append(matrixSuffix);
+    return sb.toString();
   }
 }
