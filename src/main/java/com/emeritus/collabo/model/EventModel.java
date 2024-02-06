@@ -7,9 +7,7 @@ import lombok.Data;
 /**
  * The Class EventModel.
  */
-/**
- * Instantiates a new event model.
- */
+@org.springframework.data.mongodb.core.mapping.Document(collection = "events")
 
 /**
  * Instantiates a new event model.

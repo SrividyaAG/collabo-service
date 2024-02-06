@@ -122,14 +122,17 @@ public class Consumer {
     String userName = canvasUserService.getUserName(userId);
     if (userName != null) {
       Integer courseId = Integer.parseInt(body.get(COURSE_ID).replaceFirst(ACCOUNT_ID, EMPTY));
-      if (StringUtils.equalsAnyIgnoreCase(body.get(WORKFLOWSTATE), DELETED)
-          || StringUtils.equalsAnyIgnoreCase(body.get(WORKFLOWSTATE), INACTIVE)) {
+      String workFlowState = body.get(WORKFLOWSTATE);
+      if (StringUtils.equalsAnyIgnoreCase(workFlowState, DELETED)
+          || StringUtils.equalsAnyIgnoreCase(workFlowState, INACTIVE)) {
         roomInfoRepository.findByCourseId(courseId).subscribe(existingRoom -> roomController
             .removeUser(existingRoom.getRoom_id(), userName, REASON).subscribe());
-        logger.info("Remove user from the room successfully");
+        logger.info("Event - remove user");
       } else {
-        logger.info(
-            "Due to different work-flow state remove user from the room operation un-successfull");
+        roomInfoRepository.findByCourseId(courseId).subscribe(
+            existingRoom -> roomController.inviteUser(existingRoom.getRoom_id(), userName)
+                .subscribe(user -> logger.info("InviteUserResponse " + user)));
+        logger.info("Update enrollment - Invite user");
       }
     }
 
