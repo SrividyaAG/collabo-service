@@ -6,12 +6,14 @@ import org.bson.Document;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
 import com.emeritus.collabo.constant.Constants;
 import com.emeritus.collabo.model.EventModel;
+import com.emeritus.collabo.service.EventService;
 import reactor.core.publisher.Mono;
 
 /**
@@ -27,6 +29,10 @@ public class EventsHandler {
   /** The rabbit template. */
   @Autowired
   private RabbitTemplate rabbitTemplate;
+
+  /** The event service. */
+  @Autowired
+  EventService eventService;
 
   /** The default page size. */
   @Value("${app.pagination.defaultPageSize}")
@@ -68,9 +74,10 @@ public class EventsHandler {
               createEnrollment + Constants.ROUTING_KEY, eventModel);
         } else if (eventName.equals(updateEnrollement)) {
           rabbitTemplate.convertAndSend(Constants.RABBIT_EXCHANGE,
-                  updateEnrollement + Constants.ROUTING_KEY, eventModel);
+              updateEnrollement + Constants.ROUTING_KEY, eventModel);
         }
-        return ServerResponse.ok().body(Mono.just(eventModel), EventModel.class);
+        Mono<EventModel> result = eventService.processCanvasEvents(eventModel);
+        return ServerResponse.ok().body(result, EventModel.class);
       }
     }).switchIfEmpty(ServerResponse.badRequest().bodyValue("Invalid request body"));
   }
@@ -81,13 +88,14 @@ public class EventsHandler {
    * @param request the request
    * @return the mono
    */
-  @SuppressWarnings("unused")
   public Mono<ServerResponse> findCanvasEvents(ServerRequest request) {
     return request.bodyToMono(Document.class).flatMap(jsonObject -> {
       int page = jsonObject.getInteger("page", 0);
       int size = jsonObject.getInteger("size", defaultPageSize);
       PageRequest pageable = PageRequest.of(page, size);
-      return ServerResponse.ok().body(null, EventModel.class);
+      Mono<Page<EventModel>> result = eventService.findByQuery(jsonObject.getString("query"),
+          jsonObject.getString("filter"), pageable);
+      return ServerResponse.ok().body(result, EventModel.class);
     }).switchIfEmpty(ServerResponse.badRequest().bodyValue("Invalid request body"));
   }
 
@@ -97,12 +105,12 @@ public class EventsHandler {
    * @param request the request
    * @return the all canvas events
    */
-  @SuppressWarnings("unused")
   public Mono<ServerResponse> getAllCanvasEvents(ServerRequest request) {
     int page = request.queryParam("page").map(Integer::parseInt).orElse(0);
     int size = request.queryParam("size").map(Integer::parseInt).orElse(defaultPageSize);
     PageRequest pageable = PageRequest.of(page, size);
-    return ServerResponse.ok().body(null, EventModel.class);
+    Mono<Page<EventModel>> allData = eventService.getAllCanvasEvents(pageable);
+    return ServerResponse.ok().body(allData, EventModel.class);
   }
 
   /**
